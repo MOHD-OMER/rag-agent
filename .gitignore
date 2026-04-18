@@ -25,3 +25,8 @@ Thumbs.db
 
 # Logs
 *.log
+
+*.db
+*.db-shm
+*.db-wal
+agent_memory.db

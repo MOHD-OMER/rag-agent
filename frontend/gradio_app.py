@@ -9,6 +9,7 @@ Deploy to HF Spaces:
 """
 from __future__ import annotations
 
+import asyncio
 import os
 import sys
 import uuid
@@ -41,7 +42,6 @@ def upload_files(files) -> str:
     if not files:
         return "No files provided."
 
-    # FIX: correct import path (langchain_text_splitters, not langchain.text_splitter)
     from langchain_community.document_loaders import (
         PyPDFLoader,
         TextLoader,
@@ -107,9 +107,20 @@ def chat(message: str, history: List[Tuple[str, str]]) -> Tuple[str, List[Tuple[
     session = memory_manager.get_or_create(SESSION_ID)
 
     try:
-        result = run_agent(message, session, SESSION_ID)
-        answer = result["answer"]
+        # run_agent is async — run it safely from this sync Gradio context
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    future = pool.submit(asyncio.run, run_agent(message, session, SESSION_ID))
+                    result = future.result()
+            else:
+                result = loop.run_until_complete(run_agent(message, session, SESSION_ID))
+        except RuntimeError:
+            result = asyncio.run(run_agent(message, session, SESSION_ID))
 
+        answer = result["answer"]
         sources = result.get("sources", [])
         tool_calls = result.get("tool_calls", [])
 

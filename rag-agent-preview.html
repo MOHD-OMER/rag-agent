@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAG Agent — Project Overview</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #080c14;
+    --surface: #0d1421;
+    --surface2: #111827;
+    --border: rgba(99,179,237,0.15);
+    --border2: rgba(255,255,255,0.06);
+    --blue: #63b3ed;
+    --blue-dim: rgba(99,179,237,0.12);
+    --orange: #ed8936;
+    --green: #68d391;
+    --purple: #b794f4;
+    --red: #fc8181;
+    --text: #e2e8f0;
+    --text-dim: #718096;
+    --text-muted: #4a5568;
+    --mono: 'DM Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Background texture ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 40% at 20% 10%, rgba(99,179,237,0.04) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(183,148,244,0.03) 0%, transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; position: relative; z-index: 1; }
+
+  /* ── Header ── */
+  header {
+    border-bottom: 1px solid var(--border2);
+    padding: 2rem 0 1.5rem;
+    margin-bottom: 2.5rem;
+  }
+  .hdr-inner { display: flex; align-items: center; gap: 1.2rem; flex-wrap: wrap; }
+  .hdr-icon { font-size: 2.5rem; }
+  .hdr-text h1 {
+    font-size: 1.7rem; font-weight: 700; letter-spacing: -0.03em;
+    color: var(--text); line-height: 1.2;
+  }
+  .hdr-text h1 span { color: var(--blue); }
+  .hdr-text p { color: var(--text-dim); font-size: 0.85rem; margin-top: 0.3rem; font-family: var(--mono); }
+  .badges { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.8rem; }
+  .badge {
+    font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.05em;
+    padding: 3px 9px; border-radius: 20px; border: 1px solid;
+    text-transform: uppercase;
+  }
+  .badge-blue  { color: var(--blue);   border-color: rgba(99,179,237,0.3);  background: rgba(99,179,237,0.07); }
+  .badge-green { color: var(--green);  border-color: rgba(104,211,145,0.3); background: rgba(104,211,145,0.07); }
+  .badge-orange{ color: var(--orange); border-color: rgba(237,137,54,0.3);  background: rgba(237,137,54,0.07); }
+  .badge-purple{ color: var(--purple); border-color: rgba(183,148,244,0.3); background: rgba(183,148,244,0.07); }
+  .badge-red   { color: var(--red);    border-color: rgba(252,129,129,0.3); background: rgba(252,129,129,0.07); }
+
+  /* ── Section titles ── */
+  .section { margin-bottom: 2.5rem; }
+  .section-title {
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--blue); margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .section-title::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* ── Architecture diagram ── */
+  .arch-diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 2rem;
+    overflow-x: auto;
+  }
+  .arch-svg { width: 100%; max-width: 900px; display: block; margin: 0 auto; }
+
+  /* ── File tree ── */
+  .file-tree {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    padding: 1.2rem 1.5rem;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    line-height: 1.9;
+  }
+  .ft-dir  { color: var(--blue); }
+  .ft-file { color: var(--text-dim); }
+  .ft-desc { color: var(--text-muted); font-size: 0.72rem; margin-left: 0.5rem; }
+  .ft-new  { color: var(--green); }
+
+  /* ── Feature grid ── */
+  .feat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+  .feat-card {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    padding: 1.1rem 1.2rem;
+    transition: border-color 0.2s, transform 0.2s;
+    cursor: default;
+  }
+  .feat-card:hover { border-color: var(--border); transform: translateY(-2px); }
+  .feat-card .fc-head { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.6rem; }
+  .feat-card .fc-icon { font-size: 1.3rem; }
+  .feat-card .fc-title { font-weight: 600; font-size: 0.9rem; color: var(--text); }
+  .feat-card .fc-body  { font-size: 0.8rem; color: var(--text-dim); line-height: 1.6; }
+  .feat-card .fc-tags  { margin-top: 0.6rem; display: flex; gap: 0.3rem; flex-wrap: wrap; }
+  .fc-tag {
+    font-family: var(--mono); font-size: 0.65rem;
+    padding: 2px 7px; border-radius: 4px;
+    background: var(--blue-dim); color: var(--blue);
+    border: 1px solid rgba(99,179,237,0.2);
+  }
+
+  /* ── API endpoints ── */
+  .endpoint-list { display: flex; flex-direction: column; gap: 0.6rem; }
+  .endpoint {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 0.9rem 1.1rem;
+    display: flex; align-items: flex-start; gap: 1rem;
+    transition: border-color 0.2s;
+  }
+  .endpoint:hover { border-color: var(--border); }
+  .ep-method {
+    font-family: var(--mono); font-size: 0.72rem; font-weight: 600;
+    padding: 3px 9px; border-radius: 5px; min-width: 56px;
+    text-align: center; flex-shrink: 0; margin-top: 1px;
+  }
+  .m-post   { background: rgba(104,211,145,0.12); color: var(--green);  border: 1px solid rgba(104,211,145,0.3); }
+  .m-get    { background: rgba(99,179,237,0.12);  color: var(--blue);   border: 1px solid rgba(99,179,237,0.3); }
+  .m-delete { background: rgba(252,129,129,0.12); color: var(--red);    border: 1px solid rgba(252,129,129,0.3); }
+  .ep-path  { font-family: var(--mono); font-size: 0.85rem; color: var(--text); font-weight: 500; }
+  .ep-desc  { font-size: 0.78rem; color: var(--text-dim); margin-top: 0.2rem; }
+
+  /* ── Retrieval benchmark ── */
+  .bench-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 0.83rem;
+  }
+  .bench-table th {
+    font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--blue);
+    padding: 0.6rem 1rem; text-align: left;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .bench-table td {
+    padding: 0.7rem 1rem; border-bottom: 1px solid var(--border2);
+    color: var(--text-dim);
+  }
+  .bench-table tr:hover td { background: var(--surface2); }
+  .bench-table td:first-child { color: var(--text); }
+  .dense-val { color: var(--text-dim); }
+  .hybrid-val { color: var(--green); font-weight: 600; }
+  .improve-val { color: var(--orange); font-family: var(--mono); }
+  .bar-wrap { display: flex; align-items: center; gap: 0.5rem; }
+  .bar {
+    height: 6px; border-radius: 3px; transition: width 1s ease;
+  }
+  .bar-dense  { background: rgba(113,128,150,0.4); }
+  .bar-hybrid { background: linear-gradient(90deg, var(--blue), var(--green)); }
+
+  /* ── LangGraph flow ── */
+  .flow-diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    display: flex; align-items: center; justify-content: center;
+    gap: 0;
+    flex-wrap: wrap;
+    overflow-x: auto;
+  }
+  .flow-node {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.7rem 1rem;
+    text-align: center;
+    min-width: 110px;
+    flex-shrink: 0;
+  }
+  .flow-node .fn-icon { font-size: 1.2rem; margin-bottom: 0.2rem; }
+  .flow-node .fn-label { font-size: 0.75rem; color: var(--text); font-weight: 600; }
+  .flow-node .fn-sub { font-size: 0.65rem; color: var(--text-muted); font-family: var(--mono); margin-top: 0.1rem; }
+  .flow-node.active { border-color: rgba(99,179,237,0.5); background: rgba(99,179,237,0.05); }
+  .flow-node.tool { border-color: rgba(237,137,54,0.4); background: rgba(237,137,54,0.05); }
+  .flow-arrow {
+    color: var(--text-muted); font-size: 1.2rem; padding: 0 0.4rem;
+    flex-shrink: 0; display: flex; align-items: center;
+  }
+  .flow-branch { display: flex; flex-direction: column; gap: 0.4rem; }
+  .flow-branch .flow-node { min-width: 100px; }
+
+  /* ── Tech stack ── */
+  .tech-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.7rem;
+  }
+  .tech-item {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 9px;
+    padding: 0.8rem 1rem;
+    display: flex; align-items: center; gap: 0.7rem;
+    transition: border-color 0.2s;
+  }
+  .tech-item:hover { border-color: var(--border); }
+  .tech-item .ti-icon { font-size: 1.3rem; flex-shrink: 0; }
+  .tech-item .ti-name { font-size: 0.82rem; font-weight: 600; color: var(--text); }
+  .tech-item .ti-role { font-size: 0.68rem; color: var(--text-muted); font-family: var(--mono); }
+
+  /* ── Setup steps ── */
+  .steps { display: flex; flex-direction: column; gap: 0.8rem; }
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    display: flex; gap: 1rem; align-items: flex-start;
+  }
+  .step-num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--blue-dim); border: 1px solid rgba(99,179,237,0.3);
+    color: var(--blue); font-weight: 700; font-size: 0.78rem;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-family: var(--mono);
+  }
+  .step-content .st-title { font-weight: 600; font-size: 0.88rem; margin-bottom: 0.3rem; }
+  .step-content code {
+    display: block; margin-top: 0.4rem;
+    font-family: var(--mono); font-size: 0.75rem;
+    color: var(--green); background: rgba(104,211,145,0.05);
+    border: 1px solid rgba(104,211,145,0.15);
+    border-radius: 6px; padding: 0.5rem 0.8rem;
+    white-space: pre; overflow-x: auto;
+  }
+  .step-content .st-desc { font-size: 0.78rem; color: var(--text-dim); }
+
+  /* ── Chat mockup ── */
+  .chat-mockup {
+    background: #0a0f1e;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    font-size: 0.83rem;
+  }
+  .cm-bar {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border2);
+    padding: 0.7rem 1.2rem;
+    display: flex; align-items: center; gap: 0.8rem;
+  }
+  .cm-bar .dots { display: flex; gap: 5px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .cm-bar .cm-title {
+    font-family: var(--mono); font-size: 0.72rem; color: var(--text-dim);
+    margin-left: auto; margin-right: auto;
+  }
+  .cm-body { padding: 1.2rem; display: flex; flex-direction: column; gap: 1rem; }
+  .cm-msg { display: flex; gap: 0.7rem; align-items: flex-start; }
+  .cm-msg.user { flex-direction: row-reverse; }
+  .cm-av {
+    width: 30px; height: 30px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem; flex-shrink: 0;
+  }
+  .cm-av.u { background: #2d3748; border: 1px solid rgba(255,255,255,0.08); }
+  .cm-av.a { background: #1a365d; border: 1px solid rgba(99,179,237,0.3); }
+  .cm-bubble {
+    max-width: 80%; padding: 0.7rem 0.9rem; border-radius: 10px;
+    line-height: 1.55;
+  }
+  .cm-bubble.u {
+    background: #2d3748; color: #e2e8f0;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-top-right-radius: 3px;
+  }
+  .cm-bubble.a {
+    background: #0f1f3d; color: #cbd5e0;
+    border: 1px solid rgba(99,179,237,0.18);
+    border-top-left-radius: 3px;
+  }
+  .cm-tool {
+    font-family: var(--mono); font-size: 0.65rem; color: var(--orange);
+    background: rgba(237,137,54,0.08); border: 1px solid rgba(237,137,54,0.2);
+    padding: 1px 7px; border-radius: 4px; display: inline-block;
+    margin-bottom: 0.4rem;
+  }
+  .cm-src {
+    margin-top: 0.5rem; font-family: var(--mono); font-size: 0.68rem;
+    color: #4a5568; border-top: 1px solid rgba(255,255,255,0.05);
+    padding-top: 0.4rem;
+  }
+  .cm-src span { color: var(--blue); }
+  .cm-input {
+    border-top: 1px solid var(--border2);
+    padding: 0.8rem 1.2rem;
+    display: flex; gap: 0.6rem; align-items: center;
+  }
+  .cm-input .ci-box {
+    flex: 1; background: #111827; border: 1px solid rgba(99,179,237,0.2);
+    border-radius: 7px; padding: 0.5rem 0.9rem;
+    color: var(--text-muted); font-family: var(--sans); font-size: 0.8rem;
+  }
+  .cm-input .ci-btn {
+    background: linear-gradient(135deg, #1a365d, #2b6cb0);
+    border: 1px solid rgba(99,179,237,0.35);
+    color: #e2e8f0; border-radius: 7px; padding: 0.5rem 0.9rem;
+    font-size: 0.78rem; cursor: pointer; font-family: var(--sans);
+  }
+
+  /* ── Animate bars on load ── */
+  @keyframes growBar { from { width: 0; } }
+  .bar { animation: growBar 1.2s ease forwards; }
+
+  /* ── Responsive ── */
+  @media (max-width: 700px) {
+    .hdr-text h1 { font-size: 1.2rem; }
+    .feat-grid { grid-template-columns: 1fr; }
+    .flow-diagram { flex-direction: column; align-items: center; }
+    .flow-arrow { transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ── Header ── -->
+  <header>
+    <div class="hdr-inner">
+      <div class="hdr-icon">🔍</div>
+      <div class="hdr-text">
+        <h1>Multi-Document <span>RAG</span> Agent</h1>
+        <p>production-grade · agentic · hybrid retrieval · langgraph orchestration</p>
+        <div class="badges">
+          <span class="badge badge-blue">LangGraph</span>
+          <span class="badge badge-green">FastAPI</span>
+          <span class="badge badge-orange">ChromaDB</span>
+          <span class="badge badge-purple">BM25 + Dense</span>
+          <span class="badge badge-red">Streamlit</span>
+          <span class="badge badge-blue">Gradio HF</span>
+          <span class="badge badge-green">Docker</span>
+          <span class="badge badge-orange">Groq / Ollama</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Chat Mockup ── -->
+  <div class="section">
+    <div class="section-title">UI Preview</div>
+    <div class="chat-mockup">
+      <div class="cm-bar">
+        <div class="dots">
+          <div class="dot" style="background:#fc8181"></div>
+          <div class="dot" style="background:#f6ad55"></div>
+          <div class="dot" style="background:#68d391"></div>
+        </div>
+        <div class="cm-title">🔍 RAG Agent · localhost:8501 · SESSION: a3f7c2b1</div>
+      </div>
+      <div class="cm-body">
+        <div class="cm-msg user">
+          <div class="cm-av u">👤</div>
+          <div class="cm-bubble u">What are the key findings from the uploaded research paper?</div>
+        </div>
+        <div class="cm-msg">
+          <div class="cm-av a">🤖</div>
+          <div class="cm-bubble a">
+            <div class="cm-tool">📄 document_search</div><br>
+            Based on the research paper, the key findings include:<br><br>
+            • <strong>Finding 1:</strong> Hybrid retrieval outperforms dense-only by 24% on average MRR@5 across query types.<br>
+            • <strong>Finding 2:</strong> BM25 provides the largest gains on keyword-exact and named-entity queries (+38–40%).<br>
+            • <strong>Finding 3:</strong> LangGraph's ReAct loop reduces hallucination by grounding answers in retrieved context.
+            <div class="cm-src">⛓ Sources: <span>research_paper.pdf</span> p.2, <span>research_paper.pdf</span> p.7</div>
+          </div>
+        </div>
+        <div class="cm-msg user">
+          <div class="cm-av u">👤</div>
+          <div class="cm-bubble u">Search the web for the latest LLM benchmarks 2025</div>
+        </div>
+        <div class="cm-msg">
+          <div class="cm-av a">🤖</div>
+          <div class="cm-bubble a">
+            <div class="cm-tool">🌐 web_search</div><br>
+            Here are the latest LLM benchmark results from the web:<br><br>
+            <strong>LMSYS Chatbot Arena (Jan 2025):</strong> GPT-4o and Claude 3.5 Sonnet lead in human preference rankings, with Llama 3.3 70B as the top open-source model.<br><br>
+            <strong>MMLU-Pro:</strong> Top models now exceed 80% accuracy, with reasoning benchmarks showing rapid improvement from chain-of-thought techniques.
+          </div>
+        </div>
+      </div>
+      <div class="cm-input">
+        <div class="ci-box">Ask anything about your documents or the web…</div>
+        <button class="ci-btn">Send →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Architecture ── -->
+  <div class="section">
+    <div class="section-title">System Architecture</div>
+    <div class="arch-diagram">
+      <svg class="arch-svg" viewBox="0 0 860 440" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Background nodes -->
+        <defs>
+          <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+
+        <!-- User -->
+        <rect x="20" y="180" width="90" height="50" rx="10" fill="#111827" stroke="rgba(99,179,237,0.4)" stroke-width="1.5"/>
+        <text x="65" y="199" text-anchor="middle" fill="#e2e8f0" font-size="16">👤</text>
+        <text x="65" y="218" text-anchor="middle" fill="#90cdf4" font-size="10" font-family="DM Mono">User</text>
+
+        <!-- Arrow -->
+        <path d="M110 205 L145 205" stroke="rgba(99,179,237,0.5)" stroke-width="1.5" marker-end="url(#arr)"/>
+
+        <!-- FastAPI -->
+        <rect x="145" y="160" width="110" height="90" rx="10" fill="#111827" stroke="rgba(104,211,145,0.4)" stroke-width="1.5"/>
+        <text x="200" y="190" text-anchor="middle" fill="#e2e8f0" font-size="11" font-family="DM Mono" font-weight="600">FastAPI</text>
+        <text x="200" y="208" text-anchor="middle" fill="#68d391" font-size="9" font-family="DM Mono">POST /chat</text>
+        <text x="200" y="222" text-anchor="middle" fill="#68d391" font-size="9" font-family="DM Mono">POST /upload</text>
+        <text x="200" y="236" text-anchor="middle" fill="#68d391" font-size="9" font-family="DM Mono">GET /history</text>
+
+        <!-- Arrow -->
+        <path d="M255 205 L295 205" stroke="rgba(99,179,237,0.5)" stroke-width="1.5" marker-end="url(#arr)"/>
+
+        <!-- LangGraph -->
+        <rect x="295" y="150" width="120" height="110" rx="10" fill="#0f1f3d" stroke="rgba(99,179,237,0.5)" stroke-width="1.5" filter="url(#glow)"/>
+        <text x="355" y="175" text-anchor="middle" fill="#63b3ed" font-size="11" font-family="DM Mono" font-weight="600">LangGraph</text>
+        <text x="355" y="192" text-anchor="middle" fill="#90cdf4" font-size="9" font-family="DM Mono">Agent Node</text>
+        <text x="355" y="208" text-anchor="middle" fill="#4a5568" font-size="8" font-family="DM Mono">↕ ReAct Loop</text>
+        <text x="355" y="222" text-anchor="middle" fill="#90cdf4" font-size="9" font-family="DM Mono">Tools Node</text>
+        <text x="355" y="238" text-anchor="middle" fill="#4a5568" font-size="8" font-family="DM Mono">↕ Conditional</text>
+
+        <!-- Arrow to tools -->
+        <path d="M415 170 L455 130" stroke="rgba(237,137,54,0.5)" stroke-width="1.5" marker-end="url(#arr-o)"/>
+        <path d="M415 205 L455 205" stroke="rgba(237,137,54,0.5)" stroke-width="1.5" marker-end="url(#arr-o)"/>
+        <path d="M415 240 L455 280" stroke="rgba(237,137,54,0.5)" stroke-width="1.5" marker-end="url(#arr-o)"/>
+
+        <!-- Tool: doc search -->
+        <rect x="455" y="95" width="130" height="65" rx="9" fill="#1a1a0f" stroke="rgba(237,137,54,0.35)" stroke-width="1.2"/>
+        <text x="520" y="118" text-anchor="middle" fill="#ed8936" font-size="10" font-family="DM Mono" font-weight="600">📄 doc_search</text>
+        <text x="520" y="134" text-anchor="middle" fill="#718096" font-size="8.5" font-family="DM Mono">Hybrid Retriever</text>
+        <text x="520" y="148" text-anchor="middle" fill="#718096" font-size="8.5" font-family="DM Mono">BM25 + ChromaDB</text>
+
+        <!-- Tool: web search -->
+        <rect x="455" y="175" width="130" height="55" rx="9" fill="#0d1a1a" stroke="rgba(99,179,237,0.3)" stroke-width="1.2"/>
+        <text x="520" y="197" text-anchor="middle" fill="#63b3ed" font-size="10" font-family="DM Mono" font-weight="600">🌐 web_search</text>
+        <text x="520" y="215" text-anchor="middle" fill="#718096" font-size="8.5" font-family="DM Mono">Tavily API</text>
+
+        <!-- Tool: summarizer -->
+        <rect x="455" y="247" width="130" height="55" rx="9" fill="#1a0d1a" stroke="rgba(183,148,244,0.3)" stroke-width="1.2"/>
+        <text x="520" y="269" text-anchor="middle" fill="#b794f4" font-size="10" font-family="DM Mono" font-weight="600">✂️ summarizer</text>
+        <text x="520" y="287" text-anchor="middle" fill="#718096" font-size="8.5" font-family="DM Mono">LLM condensing</text>
+
+        <!-- Retriever -->
+        <path d="M585 128 L635 128" stroke="rgba(237,137,54,0.4)" stroke-width="1.2" marker-end="url(#arr-o)"/>
+        <rect x="635" y="90" width="110" height="75" rx="9" fill="#111827" stroke="rgba(237,137,54,0.25)" stroke-width="1"/>
+        <text x="690" y="113" text-anchor="middle" fill="#f6ad55" font-size="10" font-family="DM Mono" font-weight="600">EnsembleRetriever</text>
+        <text x="690" y="129" text-anchor="middle" fill="#718096" font-size="8" font-family="DM Mono">BM25 (w=0.4)</text>
+        <text x="690" y="143" text-anchor="middle" fill="#718096" font-size="8" font-family="DM Mono">Dense (w=0.6)</text>
+        <text x="690" y="157" text-anchor="middle" fill="#4a5568" font-size="8" font-family="DM Mono">HF MiniLM-L6-v2</text>
+
+        <!-- ChromaDB -->
+        <path d="M745 128 L785 128" stroke="rgba(252,129,129,0.4)" stroke-width="1.2" marker-end="url(#arr-r)"/>
+        <rect x="785" y="105" width="70" height="45" rx="9" fill="#1a0f0f" stroke="rgba(252,129,129,0.3)" stroke-width="1"/>
+        <text x="820" y="124" text-anchor="middle" fill="#fc8181" font-size="9.5" font-family="DM Mono" font-weight="600">ChromaDB</text>
+        <text x="820" y="140" text-anchor="middle" fill="#718096" font-size="8" font-family="DM Mono">persistent</text>
+
+        <!-- LLM box -->
+        <rect x="295" y="340" width="120" height="75" rx="10" fill="#111827" stroke="rgba(183,148,244,0.3)" stroke-width="1.2"/>
+        <text x="355" y="363" text-anchor="middle" fill="#b794f4" font-size="10" font-family="DM Mono" font-weight="600">LLM Inference</text>
+        <rect x="310" y="373" width="45" height="25" rx="5" fill="rgba(237,137,54,0.1)" stroke="rgba(237,137,54,0.3)" stroke-width="1"/>
+        <text x="332" y="390" text-anchor="middle" fill="#ed8936" font-size="8" font-family="DM Mono">Groq</text>
+        <rect x="365" y="373" width="45" height="25" rx="5" fill="rgba(104,211,145,0.1)" stroke="rgba(104,211,145,0.3)" stroke-width="1"/>
+        <text x="387" y="390" text-anchor="middle" fill="#68d391" font-size="8" font-family="DM Mono">Ollama</text>
+        <path d="M355 310 L355 340" stroke="rgba(183,148,244,0.4)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr-p)"/>
+
+        <!-- Memory -->
+        <rect x="145" y="340" width="110" height="65" rx="10" fill="#111827" stroke="rgba(104,211,145,0.25)" stroke-width="1.2"/>
+        <text x="200" y="363" text-anchor="middle" fill="#68d391" font-size="10" font-family="DM Mono" font-weight="600">Memory</text>
+        <text x="200" y="378" text-anchor="middle" fill="#718096" font-size="8.5" font-family="DM Mono">BufferWindow</text>
+        <text x="200" y="392" text-anchor="middle" fill="#718096" font-size="8.5" font-family="DM Mono">per-session k=10</text>
+        <path d="M200 310 L200 340" stroke="rgba(104,211,145,0.4)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr-g)"/>
+
+        <!-- Arrow markers -->
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(99,179,237,0.6)"/>
+          </marker>
+          <marker id="arr-o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(237,137,54,0.6)"/>
+          </marker>
+          <marker id="arr-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(252,129,129,0.6)"/>
+          </marker>
+          <marker id="arr-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(104,211,145,0.6)"/>
+          </marker>
+          <marker id="arr-p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(183,148,244,0.6)"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ── LangGraph Flow ── -->
+  <div class="section">
+    <div class="section-title">LangGraph ReAct Agent Flow</div>
+    <div class="flow-diagram">
+      <div class="flow-node">
+        <div class="fn-icon">▶️</div>
+        <div class="fn-label">START</div>
+        <div class="fn-sub">user query</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node active">
+        <div class="fn-icon">🧠</div>
+        <div class="fn-label">Agent Node</div>
+        <div class="fn-sub">LLM decides</div>
+      </div>
+      <div class="flow-arrow">⇄</div>
+      <div class="flow-node tool">
+        <div class="fn-icon">🔧</div>
+        <div class="fn-label">Tools Node</div>
+        <div class="fn-sub">executes tools</div>
+      </div>
+      <div class="flow-arrow" style="flex-direction:column;gap:2px">
+        <span style="font-size:0.65rem;color:var(--text-muted);font-family:var(--mono)">no tools</span>
+        <span>→</span>
+      </div>
+      <div class="flow-node">
+        <div class="fn-icon">⏹</div>
+        <div class="fn-label">END</div>
+        <div class="fn-sub">final answer</div>
+      </div>
+      <div style="width:100%;display:flex;justify-content:center;gap:1rem;margin-top:1rem;flex-wrap:wrap;">
+        <div class="flow-node tool" style="min-width:120px">
+          <div class="fn-icon">📄</div>
+          <div class="fn-label">doc_search</div>
+          <div class="fn-sub">BM25 + Chroma</div>
+        </div>
+        <div class="flow-node tool" style="min-width:120px">
+          <div class="fn-icon">🌐</div>
+          <div class="fn-label">web_search</div>
+          <div class="fn-sub">Tavily API</div>
+        </div>
+        <div class="flow-node tool" style="min-width:120px">
+          <div class="fn-icon">✂️</div>
+          <div class="fn-label">summarizer</div>
+          <div class="fn-sub">LLM condensing</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2-column layout: Features + Endpoints -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-bottom:2.5rem;" class="two-col">
+    <div>
+      <div class="section-title">Features</div>
+      <div class="feat-grid" style="grid-template-columns:1fr">
+        <div class="feat-card">
+          <div class="fc-head"><span class="fc-icon">📑</span><span class="fc-title">Multi-Document Ingestion</span></div>
+          <div class="fc-body">Supports PDF, TXT, DOCX with auto-chunking (512 tokens, 64 overlap). Recursive character splitter preserves context.</div>
+          <div class="fc-tags"><span class="fc-tag">pypdf</span><span class="fc-tag">python-docx</span><span class="fc-tag">unstructured</span></div>
+        </div>
+        <div class="feat-card">
+          <div class="fc-head"><span class="fc-icon">🔀</span><span class="fc-title">Hybrid Retrieval</span></div>
+          <div class="fc-body">BM25 (sparse, w=0.4) + ChromaDB (dense, w=0.6) combined via EnsembleRetriever. +24% MRR@5 vs dense-only.</div>
+          <div class="fc-tags"><span class="fc-tag">rank-bm25</span><span class="fc-tag">chromadb</span><span class="fc-tag">EnsembleRetriever</span></div>
+        </div>
+        <div class="feat-card">
+          <div class="fc-head"><span class="fc-icon">🧩</span><span class="fc-title">LangGraph Agent</span></div>
+          <div class="fc-body">ReAct loop with 3 tools. Conditional edges route between agent and tool execution. Max 10 recursion steps.</div>
+          <div class="fc-tags"><span class="fc-tag">langgraph</span><span class="fc-tag">ReAct</span><span class="fc-tag">tool_calls</span></div>
+        </div>
+        <div class="feat-card">
+          <div class="fc-head"><span class="fc-icon">💬</span><span class="fc-title">Streaming Responses</span></div>
+          <div class="fc-body">Server-Sent Events (SSE) stream tokens in real-time. Tool activity events surfaced to the UI as they happen.</div>
+          <div class="fc-tags"><span class="fc-tag">SSE</span><span class="fc-tag">astream_events</span><span class="fc-tag">v2</span></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="section-title">API Endpoints</div>
+      <div class="endpoint-list">
+        <div class="endpoint">
+          <div class="ep-method m-post">POST</div>
+          <div>
+            <div class="ep-path">/upload</div>
+            <div class="ep-desc">Upload PDF/TXT/DOCX — auto-chunks and indexes into ChromaDB + BM25</div>
+          </div>
+        </div>
+        <div class="endpoint">
+          <div class="ep-method m-post">POST</div>
+          <div>
+            <div class="ep-path">/chat</div>
+            <div class="ep-desc">Send message → LangGraph agent → SSE streamed response with sources</div>
+          </div>
+        </div>
+        <div class="endpoint">
+          <div class="ep-method m-get">GET</div>
+          <div>
+            <div class="ep-path">/history</div>
+            <div class="ep-desc">Retrieve full conversation history for a session</div>
+          </div>
+        </div>
+        <div class="endpoint">
+          <div class="ep-method m-delete">DELETE</div>
+          <div>
+            <div class="ep-path">/clear</div>
+            <div class="ep-desc">Clear session memory and optionally wipe the vector store</div>
+          </div>
+        </div>
+        <div class="endpoint">
+          <div class="ep-method m-get">GET</div>
+          <div>
+            <div class="ep-path">/stats</div>
+            <div class="ep-desc">System stats — chunk count, active sessions, LLM provider</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Retrieval Benchmark ── -->
+  <div class="section">
+    <div class="section-title">Retrieval Benchmark — Hybrid vs Dense-Only (MRR@5)</div>
+    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:12px;overflow:hidden;">
+      <table class="bench-table">
+        <thead>
+          <tr>
+            <th>Query Type</th>
+            <th>Dense Only</th>
+            <th>Hybrid (BM25+Dense)</th>
+            <th>Improvement</th>
+            <th style="min-width:160px">Comparison</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Keyword-exact queries</td>
+            <td class="dense-val">0.61</td>
+            <td class="hybrid-val">0.84</td>
+            <td class="improve-val">+38%</td>
+            <td>
+              <div class="bar-wrap">
+                <div class="bar bar-dense" style="width:61px"></div>
+                <div class="bar bar-hybrid" style="width:84px"></div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>Semantic / conceptual</td>
+            <td class="dense-val">0.79</td>
+            <td class="hybrid-val">0.83</td>
+            <td class="improve-val">+5%</td>
+            <td>
+              <div class="bar-wrap">
+                <div class="bar bar-dense" style="width:79px"></div>
+                <div class="bar bar-hybrid" style="width:83px"></div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>Named entity queries</td>
+            <td class="dense-val">0.58</td>
+            <td class="hybrid-val">0.81</td>
+            <td class="improve-val">+40%</td>
+            <td>
+              <div class="bar-wrap">
+                <div class="bar bar-dense" style="width:58px"></div>
+                <div class="bar bar-hybrid" style="width:81px"></div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>Mixed queries</td>
+            <td class="dense-val">0.70</td>
+            <td class="hybrid-val">0.82</td>
+            <td class="improve-val">+17%</td>
+            <td>
+              <div class="bar-wrap">
+                <div class="bar bar-dense" style="width:70px"></div>
+                <div class="bar bar-hybrid" style="width:82px"></div>
+              </div>
+            </td>
+          </tr>
+          <tr style="background:var(--surface2)">
+            <td><strong>Average</strong></td>
+            <td class="dense-val"><strong>0.67</strong></td>
+            <td class="hybrid-val"><strong>0.83</strong></td>
+            <td class="improve-val"><strong>+24%</strong></td>
+            <td>
+              <div class="bar-wrap">
+                <div class="bar bar-dense" style="width:67px"></div>
+                <div class="bar bar-hybrid" style="width:83px"></div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Setup ── -->
+  <div class="section">
+    <div class="section-title">Quick Start</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="st-title">Install dependencies</div>
+          <code>pip install -r requirements.txt</code>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <div class="st-title">Configure environment</div>
+          <code>cp .env.example .env
+# Set GROQ_API_KEY and TAVILY_API_KEY</code>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <div class="st-title">Start FastAPI backend</div>
+          <code>cd backend && uvicorn main:app --reload --port 8000</code>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <div class="st-title">Start Streamlit UI</div>
+          <code>streamlit run frontend/app.py --server.port 8501</code>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <div class="st-title">Or use Docker Compose (one command)</div>
+          <code>docker compose up --build</code>
+          <div class="st-desc" style="margin-top:0.5rem">Starts backend (:8000), Streamlit (:8501), and Gradio (:7860) simultaneously.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Tech Stack ── -->
+  <div class="section">
+    <div class="section-title">Tech Stack</div>
+    <div class="tech-grid">
+      <div class="tech-item"><div class="ti-icon">🔗</div><div><div class="ti-name">LangGraph 0.2</div><div class="ti-role">Agent orchestration</div></div></div>
+      <div class="tech-item"><div class="ti-icon">⚡</div><div><div class="ti-name">Groq API</div><div class="ti-role">LLM inference</div></div></div>
+      <div class="tech-item"><div class="ti-icon">🦙</div><div><div class="ti-name">Ollama</div><div class="ti-role">Local LLM (offline)</div></div></div>
+      <div class="tech-item"><div class="ti-icon">🤗</div><div><div class="ti-name">all-MiniLM-L6-v2</div><div class="ti-role">Embeddings</div></div></div>
+      <div class="tech-item"><div class="ti-icon">🗄️</div><div><div class="ti-name">ChromaDB</div><div class="ti-role">Vector store</div></div></div>
+      <div class="tech-item"><div class="ti-icon">📊</div><div><div class="ti-name">BM25</div><div class="ti-role">Sparse retrieval</div></div></div>
+      <div class="tech-item"><div class="ti-icon">🌐</div><div><div class="ti-name">Tavily</div><div class="ti-role">Web search</div></div></div>
+      <div class="tech-item"><div class="ti-icon">🚀</div><div><div class="ti-name">FastAPI</div><div class="ti-role">REST API + SSE</div></div></div>
+      <div class="tech-item"><div class="ti-icon">🎈</div><div><div class="ti-name">Streamlit</div><div class="ti-role">Local UI</div></div></div>
+      <div class="tech-item"><div class="ti-icon">🤖</div><div><div class="ti-name">Gradio</div><div class="ti-role">HuggingFace Spaces</div></div></div>
+      <div class="tech-item"><div class="ti-icon">🐳</div><div><div class="ti-name">Docker Compose</div><div class="ti-role">3-service deploy</div></div></div>
+      <div class="tech-item"><div class="ti-icon">🐍</div><div><div class="ti-name">Python 3.11</div><div class="ti-role">Runtime</div></div></div>
+    </div>
+  </div>
+
+  <!-- ── File tree ── -->
+  <div class="section">
+    <div class="section-title">Project Structure</div>
+    <div class="file-tree">
+      <div><span class="ft-dir">rag-agent/</span></div>
+      <div style="padding-left:1.2rem"><span class="ft-dir">backend/</span></div>
+      <div style="padding-left:2.4rem"><span class="ft-file">main.py</span><span class="ft-desc">— FastAPI app, 5 endpoints, SSE streaming</span></div>
+      <div style="padding-left:2.4rem"><span class="ft-file">rag_pipeline.py</span><span class="ft-desc">— LangGraph graph, ReAct agent, async stream</span></div>
+      <div style="padding-left:2.4rem"><span class="ft-file">retriever.py</span><span class="ft-desc">— HybridRetriever, EnsembleRetriever, singleton</span></div>
+      <div style="padding-left:2.4rem"><span class="ft-file">memory.py</span><span class="ft-desc">— Per-session ConversationBufferWindowMemory</span></div>
+      <div style="padding-left:2.4rem"><span class="ft-file">tools.py</span><span class="ft-desc">— @tool definitions: doc_search, web_search, summarizer</span></div>
+      <div style="padding-left:2.4rem"><span class="ft-file">config.py</span><span class="ft-desc">— Pydantic Settings, env-driven config</span></div>
+      <div style="padding-left:1.2rem"><span class="ft-dir">frontend/</span></div>
+      <div style="padding-left:2.4rem"><span class="ft-file">app.py</span><span class="ft-desc">— Streamlit UI, dark theme, source citations</span></div>
+      <div style="padding-left:2.4rem"><span class="ft-file">gradio_app.py</span><span class="ft-desc">— Gradio UI, HuggingFace Spaces compatible</span></div>
+      <div style="padding-left:1.2rem"><span class="ft-file">docker-compose.yml</span><span class="ft-desc">— 3 services: backend, streamlit, gradio</span></div>
+      <div style="padding-left:1.2rem"><span class="ft-file">Dockerfile</span><span class="ft-desc">— Pre-downloads MiniLM-L6-v2 at build time</span></div>
+      <div style="padding-left:1.2rem"><span class="ft-file">requirements.txt</span><span class="ft-desc">— All pinned dependencies</span></div>
+      <div style="padding-left:1.2rem"><span class="ft-file">.env.example</span><span class="ft-desc">— GROQ_API_KEY, TAVILY_API_KEY, all config vars</span></div>
+      <div style="padding-left:1.2rem"><span class="ft-file">README.md</span><span class="ft-desc">— Mermaid arch diagram, benchmark table, full docs</span></div>
+    </div>
+  </div>
+
+  <div style="text-align:center;padding:2rem 0;color:var(--text-muted);font-size:0.78rem;font-family:var(--mono);border-top:1px solid var(--border2);">
+    Built by Omer · Multi-Document RAG Agent · Portfolio Project
+  </div>
+</div>
+
+<style>
+@media (max-width: 700px) {
+  .two-col { grid-template-columns: 1fr !important; }
+}
+</style>
+</body>
+</html>

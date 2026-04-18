@@ -1,0 +1,10 @@
+The Great RAG Migration of 2026.
+In early April 2026, the RAG Agent was successfully migrated to a LangGraph-based architecture.
+This new system features a ReAct loop that allows the agent to reason about tool use in real-time.
+The frontend was also upgraded to support SSE streaming, providing a smooth, typewriter-like experience for users.
+The lead developer on this project was Antigravity, a powerful AI coding assistant.
+Key features include:
+- Multi-document ingestion.
+- Hybrid retrieval (BM25 + Chroma).
+- Web search via Tavily.
+- Text summarization.

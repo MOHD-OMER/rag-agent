@@ -105,7 +105,7 @@ rag-agent/
 git clone https://github.com/MOHD-OMER/rag-agent.git
 cd rag-agent
 
-conda create -n rag-agent python=3.11
+conda create -n rag-agent python=3.11.15
 conda activate rag-agent
 pip install -r requirements.txt
 ```

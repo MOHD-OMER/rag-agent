@@ -67,7 +67,7 @@ def ingest_file(file_path: str, filename: str) -> int:
     ext = Path(filename).suffix.lower()
     loader_map = {
         ".pdf": PyPDFLoader,
-        ".txt": TextLoader,
+        ".txt": lambda path: TextLoader(path, encoding="utf-8", autodetect_encoding=True),
         ".docx": UnstructuredWordDocumentLoader,
         ".doc": UnstructuredWordDocumentLoader,
     }

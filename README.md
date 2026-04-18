@@ -21,6 +21,23 @@ A production-grade Agentic AI system that lets you upload documents and have a c
 
 ---
 
+## 📸 Screenshots
+
+### Dashboard & Document Upload
+![Upload](assets/screenshot_upload.png)
+
+### Multi-tool Agentic Response
+> Agent autonomously chains `web_search` · `document_search` · `summarizer` in a single query
+
+![Chat](assets/screenshot_chat.png)
+
+### Live Web Search via Tavily API
+> Real-time results for current events — agent decides when documents aren't enough
+
+![Web Search](assets/screenshot_websearch.png)
+
+---
+
 ## 🏗 Architecture
 
 ```
@@ -70,6 +87,7 @@ rag-agent/
 ├── frontend/
 │   ├── app.py             # Streamlit UI (streaming, tool badges, citations)
 │   └── gradio_app.py      # Gradio UI for HuggingFace Spaces
+├── assets/                # Screenshots for README
 ├── .env.example           # Template — copy to .env and fill in keys
 ├── requirements.txt
 ├── Dockerfile
@@ -84,15 +102,12 @@ rag-agent/
 ### 1. Clone and set up environment
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/rag-agent.git
+git clone https://github.com/MOHD-OMER/rag-agent.git
 cd rag-agent
 
-# Create virtual environment (using uv — recommended)
-uv venv --python 3.11
-.venv\Scripts\activate        # Windows
-# source .venv/bin/activate   # macOS/Linux
-
-uv pip install -r requirements.txt
+conda create -n rag-agent python=3.11
+conda activate rag-agent
+pip install -r requirements.txt
 ```
 
 ### 2. Configure API keys
@@ -129,10 +144,7 @@ Open **http://localhost:8501**
 ## 🐳 Docker
 
 ```bash
-# Copy and fill in your .env first
 cp .env.example .env
-
-# Build and start all services
 docker compose up --build
 ```
 
@@ -142,48 +154,22 @@ docker compose up --build
 | Gradio UI | http://localhost:7860 |
 | FastAPI docs | http://localhost:8000/docs |
 
-To stop:
-
-```bash
-docker compose down
-```
-
----
-
-## 🤗 HuggingFace Spaces Deployment
-
-1. Create a new Space — choose **Gradio** SDK
-2. Set the entry point to `frontend/gradio_app.py`
-3. Add secrets in Space Settings:
-   - `GROQ_API_KEY`
-   - `TAVILY_API_KEY`
-4. Push the repo (exclude `backend/chroma_db/` and `backend/agent_memory.db` from your commit)
-
-The Gradio frontend embeds the backend directly — no separate FastAPI process needed on Spaces.
-
 ---
 
 ## ⚙️ Configuration
 
-All settings are controlled via environment variables or the `.env` file:
-
 | Variable | Default | Description |
 |---|---|---|
 | `GROQ_API_KEY` | — | Groq API key (required) |
-| `TAVILY_API_KEY` | — | Tavily search key (optional — web search disabled without it) |
+| `TAVILY_API_KEY` | — | Tavily search key (optional) |
 | `LLM_PROVIDER` | `groq` | `groq` or `ollama` |
 | `GROQ_MODEL` | `llama-3.1-8b-instant` | Groq model name |
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
-| `OLLAMA_MODEL` | `llama3.2` | Ollama model name |
 | `EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | HuggingFace sentence-transformers model |
 | `CHROMA_PERSIST_DIR` | `./chroma_db` | ChromaDB persistence path |
 | `CHUNK_SIZE` | `512` | Document chunk size (tokens) |
 | `CHUNK_OVERLAP` | `64` | Chunk overlap (tokens) |
 | `TOP_K_RETRIEVAL` | `6` | Number of chunks returned after reranking |
 | `MEMORY_WINDOW_SIZE` | `10` | Sliding window — last N turns kept in context |
-| `API_HOST` | `0.0.0.0` | FastAPI bind address |
-| `API_PORT` | `8000` | FastAPI port |
-| `ALLOWED_ORIGINS` | `http://localhost:8501,...` | CORS allowed origins |
 
 ---
 
@@ -197,16 +183,6 @@ All settings are controlled via environment variables or the `.env` file:
 | `POST` | `/chat` | Send message — streaming SSE or JSON response |
 | `GET` | `/history` | Get conversation history for a session |
 | `DELETE` | `/clear` | Clear memory and/or vector store |
-
-### `/chat` request body
-
-```json
-{
-  "message": "What are the key findings?",
-  "session_id": "abc-123",
-  "stream": true
-}
-```
 
 ### SSE event types (stream=true)
 
@@ -228,73 +204,32 @@ All settings are controlled via environment variables or the `.env` file:
 1. **BM25** (sparse) — keyword frequency matching across all indexed chunks
 2. **ChromaDB** (dense) — semantic similarity via `all-MiniLM-L6-v2` embeddings
 3. **Merge** — results deduplicated by content, BM25 results prioritized
-4. **FlashRank** — cross-encoder reranks the merged candidate pool, returning only the most semantically relevant chunks to the LLM
+4. **FlashRank** — cross-encoder reranks the merged candidate pool
 
 ### Agent loop
 
-The LangGraph ReAct agent receives the user query and a system prompt listing available tools. It then:
-
 1. Decides which tool(s) to call based on the query
-2. Executes tools (document search, web search, summarizer) — can chain multiple
+2. Executes tools — can chain multiple in sequence
 3. Synthesizes a final cited answer from tool outputs
 4. Saves the full reasoning trace as a checkpoint to SQLite
-
-### Memory & persistence
-
-- **In-session**: `ChatMessageHistory` keeps a sliding window of the last 10 turns for LLM context
-- **Cross-restart**: LangGraph `SqliteSaver` persists full agent state to `backend/agent_memory.db`. On server restart, sessions are rehydrated from the checkpoint DB — `/history` and conversation context are fully restored
-
----
-
-## 📦 Dependencies
-
-### Core
-
-- `langchain` / `langchain-community` / `langchain-core`
-- `langchain-groq` — Groq LLM integration
-- `langchain-huggingface` — HuggingFace embeddings
-- `langchain-chroma` — ChromaDB vector store
-- `langgraph` — ReAct agent orchestration
-- `langgraph-checkpoint-sqlite` — SQLite persistence for agent state
-
-### Retrieval
-
-- `chromadb` — persistent vector store
-- `rank-bm25` — sparse BM25 retrieval
-- `sentence-transformers` — embedding model
-- `flashrank` — cross-encoder reranking
-
-### Document processing
-
-- `pypdf` — PDF loading
-- `python-docx` — DOCX loading
-- `unstructured[docx]` — advanced DOCX parsing
-
-### API & frontend
-
-- `fastapi` + `uvicorn` — backend API
-- `streamlit` — local frontend
-- `gradio` — HuggingFace Spaces frontend
-- `httpx` — async HTTP client for SSE streaming
 
 ---
 
 ## 🔧 Known Limitations
 
-- **Groq rate limits** — free tier allows ~30 req/min. If you hit 429 errors, wait a few seconds between messages
-- **FlashRank cold start** — the reranker downloads its model on first use (~50 MB). This adds ~10s on first query in a fresh environment. Subsequent queries are fast
-- **Gradio frontend** — runs the backend in-process (no FastAPI). Streaming is synchronous; the Streamlit UI gives a better streaming experience for local use
-- **DOCX support** — requires the `unstructured` package. If ingestion fails for `.docx` files, ensure `unstructured[docx]` is installed
+- **Groq rate limits** — free tier ~30 req/min. Wait a few seconds if you hit 429 errors
+- **FlashRank cold start** — downloads reranker model (~50 MB) on first use, adds ~10s
+- **DOCX support** — requires `unstructured[docx]` to be installed
 
 ---
 
 ## 🗺 Roadmap
 
-- [ ] Add support for URLs as input sources (web scraping + ingestion)
-- [ ] Multi-user auth with isolated vector store namespaces per user
+- [ ] URL ingestion (web scraping + indexing)
+- [ ] Multi-user auth with isolated vector store namespaces
 - [ ] Streaming support in Gradio frontend
 - [ ] Evaluation harness with RAGAS metrics
-- [ ] Support for images inside PDFs (multimodal RAG)
+- [ ] Multimodal RAG (images inside PDFs)
 
 ---
 
